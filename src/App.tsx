@@ -1,22 +1,34 @@
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { FlaskConical, Info, Phone, Utensils, Volume2, Wine } from 'lucide-react';
-import defaultImage from '@/assets/pearl-default-cutout.png';
-import laughImage from '@/assets/pearl-laugh-cutout.png';
-import groanImage from '@/assets/pearl-groan-cutout.png';
+import defaultImage from '@/assets/pearl-default.png';
+import laughImage from '@/assets/pearl-laugh.png';
+import groanImage from '@/assets/pearl-groan.png';
 import laughSound from '@/assets/sounds/pearl-laugh.mp3';
 import gagSound from '@/assets/sounds/pearl-gag.mp3';
 import noSound from '@/assets/sounds/pearl-no.mp3';
 import yesSound from '@/assets/sounds/pearl-yes.mp3';
 import pickUpSound from '@/assets/sounds/phone-pick-up.mp3';
 import hangUpSound from '@/assets/sounds/phone-hang-up.mp3';
+import greetingSound from '@/assets/sounds/hi-my-name-is-tom-pearl.mp3';
+import drinkSound from '@/assets/sounds/freesound_community-drinking-coffe-107121.mp3';
+import eatSound from '@/assets/sounds/pearl-eat.mp3';
 import { useVoiceActivity } from '@/useVoiceActivity';
 
 type Reaction = 'default' | 'laugh' | 'groan' | 'no' | 'yes';
 type CallState = 'idle' | 'ringing' | 'connected';
-type TreatAction = 'drink' | 'eat' | null;
+type TreatKind = 'drink' | 'eat';
+type Treat = { id: number; kind: TreatKind };
 
 const REACTIONS: Exclude<Reaction, 'default'>[] = ['laugh', 'groan', 'no', 'yes'];
 const RING_MS = 1400;
+const MIC_ERROR = 'Allow microphone access so Pearl can hear you.';
+const TREAT_MS = 3200; // how long a glass or plate stays on screen
+const MAX_TREATS = 6; // spamming the buttons stacks up to this many at once
+const TREAT_SOUNDS: Record<TreatKind, { src: string; ms: number }> = {
+  drink: { src: drinkSound, ms: 2400 },
+  eat: { src: eatSound, ms: 900 },
+};
+const GREETING_MS = 14000;
 const MAX_SOUND_MS = 8000; // safety net if a sound never finishes
 
 // Pearl's secret mood: laughs cheer him up, "no" and gags annoy him.
@@ -166,7 +178,7 @@ export default function App() {
   const [reaction, setReaction] = useState<Reaction>('default');
   const [hearing, setHearing] = useState(false);
   const [notice, setNotice] = useState('');
-  const [treatAction, setTreatAction] = useState<TreatAction>(null);
+  const [treats, setTreats] = useState<Treat[]>([]);
   const [showInfo, setShowInfo] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastReaction = useRef<Reaction>('default');
@@ -176,7 +188,9 @@ export default function App() {
   const connected = useRef(false);
   const mood = useRef(0);
   const callSounds = useRef<{ pickUp?: HTMLAudioElement; hangUp?: HTMLAudioElement }>({});
-  const treatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const treatTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  const treatId = useRef(0);
+  const greeting = useRef<HTMLAudioElement | null>(null);
 
   const voice = useVoiceActivity({
     onSpeechStart: () => setHearing(true),
@@ -243,30 +257,42 @@ export default function App() {
     setNotice(message);
   }
 
-  function playTreatSound(action: Exclude<TreatAction, null>) {
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = action === 'drink' ? 'sine' : 'triangle';
-    oscillator.frequency.setValueAtTime(action === 'drink' ? 520 : 180, context.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(action === 'drink' ? 220 : 95, context.currentTime + .45);
-    gain.gain.setValueAtTime(.0001, context.currentTime);
-    gain.gain.exponentialRampToValueAtTime(.16, context.currentTime + .02);
-    gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + .48);
-    oscillator.connect(gain).connect(context.destination);
-    oscillator.start();
-    oscillator.stop(context.currentTime + .5);
-    oscillator.addEventListener('ended', () => { void context.close(); }, { once: true });
+  // Every press responds, so the buttons can be spammed: each one adds its own glass/plate and sound.
+  function giveTreat(kind: TreatKind) {
+    const id = ++treatId.current;
+    setTreats((list) => [...list.slice(-(MAX_TREATS - 1)), { id, kind }]);
+    const remove = setTimeout(() => {
+      treatTimers.current.delete(remove);
+      setTreats((list) => list.filter((t) => t.id !== id));
+    }, TREAT_MS);
+    treatTimers.current.add(remove);
+    const { src, ms } = TREAT_SOUNDS[kind];
+    void new Audio(src).play().catch(() => {});
+    voice.ignoreFor(ms + 400);
   }
 
-  function giveTreat(action: Exclude<TreatAction, null>) {
-    if (treatTimer.current) clearTimeout(treatTimer.current);
-    setTreatAction(action);
-    playTreatSound(action);
-    treatTimer.current = setTimeout(() => setTreatAction(null), 1400);
+  function sayHi() {
+    greeting.current ??= new Audio(greetingSound);
+    greeting.current.currentTime = 0; // pressing again starts the greeting over
+    void greeting.current.play().catch(() => {});
+    voice.ignoreFor(GREETING_MS + 400);
   }
+
+  useEffect(() => {
+    const timers = treatTimers.current;
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+      timers.forEach(clearTimeout);
+      greeting.current?.pause();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showInfo) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setShowInfo(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showInfo]);
 
   async function callPearl() {
     setNotice('');
@@ -280,7 +306,7 @@ export default function App() {
     try {
       await voice.start();
     } catch {
-      hangUp('Allow microphone access so Pearl can hear you.');
+      hangUp(MIC_ERROR);
       return;
     }
     if (id !== callId.current) {
@@ -314,10 +340,8 @@ export default function App() {
         <div className="hud-top">
           <HudButton label="About the game" color="#444" className="small push" onClick={() => setShowInfo(true)}><Info size={20} /></HudButton>
         </div>
-        <p className="status" aria-live="polite" hidden={!status}>
-          <span className={`dot ${callState === 'connected' ? 'live' : ''}`} />
-          {status}
-        </p>
+        <p className="sr-only" aria-live="polite">{status}</p>
+        {notice === MIC_ERROR && <p className="toast" role="alert">{notice}</p>}
 
         <div className="seat-area">
           <Chair layer="back" />
@@ -326,11 +350,11 @@ export default function App() {
           <div className={`pearl ${hearing ? 'hearing' : ''} react-${reaction}`}>
             <img src={images[reaction]} alt={alts[reaction]} />
           </div>
-          {treatAction && (
-            <div className={`treat-slide ${treatAction}`}>
-              {treatAction === 'drink' ? <DrinkProp /> : <FoodProp />}
+          {treats.map((treat) => (
+            <div key={treat.id} className={`treat-slide ${treat.kind}`} style={{ '--dx': `${((treat.id % 3) - 1) * 7}%` } as CSSProperties}>
+              {treat.kind === 'drink' ? <DrinkProp /> : <FoodProp />}
             </div>
-          )}
+          ))}
         </div>
 
         <div className="side-table">
@@ -342,7 +366,7 @@ export default function App() {
         <div className="hud-bottom">
           <HudButton label="Give Pearl a drink" color="#3d7a3a" onClick={() => giveTreat('drink')}><Wine size={26} /></HudButton>
           <HudButton label="Give Pearl food" color="#7a4a2a" onClick={() => giveTreat('eat')}><Utensils size={26} /></HudButton>
-          <HudButton label="Play a sound" color="#315d68" onClick={() => playTreatSound('eat')}><Volume2 size={27} /></HudButton>
+          <HudButton label="Say hi" color="#315d68" onClick={sayHi}><Volume2 size={27} /></HudButton>
           {callState === 'idle' && (
             <button type="button" className="round-btn call" aria-label="Call Pearl" onClick={callPearl}>
               <Phone size={30} />
@@ -362,10 +386,10 @@ export default function App() {
         {showInfo && (
           <div className="info-backdrop" role="presentation" onClick={() => setShowInfo(false)}>
             <section className="info-card" role="dialog" aria-modal="true" aria-labelledby="info-title" onClick={(event) => event.stopPropagation()}>
-              <button type="button" className="info-close" aria-label="Close game information" onClick={() => setShowInfo(false)}>×</button>
+              <button type="button" className="info-close" aria-label="Close game information" autoFocus onClick={() => setShowInfo(false)}>×</button>
               <h2 id="info-title">Talking Pearl</h2>
-              <p>Call Pearl, talk to him, and wait for his reaction. Try the drink and food buttons to see them slide up beside his mouth.</p>
-              <p>Use the red phone button whenever you want to end the call.</p>
+              <p>Talk and interact with your favorite person, Tom Pearl.</p>
+              <p>Tap the green phone to call him and talk. Give him a drink or a snack, or tap the speaker to hear him say hi.</p>
             </section>
           </div>
         )}

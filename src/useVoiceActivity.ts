@@ -23,6 +23,7 @@ export function useVoiceActivity(handlers: Handlers) {
   const audio = useRef<AudioContext | null>(null);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
   const listening = useRef(false);
+  const ignoreUntil = useRef(0);
   const state = useRef({ floor: 0.01, loudMs: 0, silentMs: 0, idleMs: 0, speaking: false });
 
   const stop = useCallback(() => {
@@ -51,6 +52,11 @@ export function useVoiceActivity(handlers: Handlers) {
 
     poll.current = setInterval(() => {
       if (!listening.current) return;
+      if (Date.now() < ignoreUntil.current) {
+        // A button sound is playing; don't mistake it for the person talking.
+        state.current = { ...state.current, loudMs: 0, silentMs: 0, idleMs: 0, speaking: false };
+        return;
+      }
       analyser.getFloatTimeDomainData(buf);
       let sum = 0;
       for (const v of buf) sum += v * v;
@@ -88,7 +94,12 @@ export function useVoiceActivity(handlers: Handlers) {
     state.current = { ...state.current, loudMs: 0, silentMs: 0, idleMs: 0, speaking: false };
   }, []);
 
+  /** Ignore the microphone for a while (e.g. while Pearl's own sounds are playing). */
+  const ignoreFor = useCallback((ms: number) => {
+    ignoreUntil.current = Math.max(ignoreUntil.current, Date.now() + ms);
+  }, []);
+
   useEffect(() => stop, [stop]);
 
-  return { start, stop, setListening };
+  return { start, stop, setListening, ignoreFor };
 }

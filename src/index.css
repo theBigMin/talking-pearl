@@ -48,23 +48,24 @@ button { font: inherit; }
 .chair-back { z-index: 1; }
 .chair-front { z-index: 3; }
 .body { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; overflow: visible; }
-/* The source photos are transparent head cutouts; these values position each expression in the chair. */
+/* Pearl's real photo, cropped to his head. --x0/--y0/--w = the crop window as fractions of each photo. */
 .pearl {
-  --hx: .49; --hy: .4; --hs: .6;
-  position: absolute; z-index: 5; left: 24%; top: 12%; width: 52%; aspect-ratio: 1; overflow: visible;
+  --x0: .103; --y0: 0; --w: .774;
+  position: absolute; z-index: 5; left: 23%; top: 9.5%; width: 54%; aspect-ratio: 43 / 50; overflow: hidden;
+  border: 4px solid #85612f; border-radius: 50%;
   transform-origin: 50% 100%; transition: transform .3s;
 }
 .pearl img {
-  position: absolute; max-width: none; height: auto; width: calc(58% / var(--hs));
-  left: calc(50% - var(--hx) * 58% / var(--hs)); top: calc(50% - var(--hy) * 58% / var(--hs));
+  position: absolute; max-width: none; height: auto; width: calc(100% / var(--w));
+  left: calc(-100% * var(--x0) / var(--w)); top: calc(-86% * var(--y0) / var(--w));
 }
-.pearl.react-laugh { --hx: .54; --hy: .34; --hs: .44; }
-.pearl.react-groan { --hx: .51; --hy: .44; --hs: .68; }
+.pearl.react-laugh { --x0: .245; --y0: .086; --w: .55; }
+.pearl.react-groan { --x0: .075; --y0: 0; --w: .83; }
 .pearl.hearing { transform: rotate(-4deg) scale(1.02); }
-.pearl.react-laugh { animation: laugh .3s ease-in-out infinite; }
+.pearl.react-laugh { animation: laugh .45s ease-in-out infinite; }
 .pearl.react-groan { animation: groan 2s ease-in-out infinite; }
-.pearl.react-yes { animation: nod .5s ease-in-out infinite; }
-.pearl.react-no { animation: shake .45s ease-in-out infinite; }
+.pearl.react-yes { animation: nod .75s ease-in-out infinite; }
+.pearl.react-no { animation: shake .65s ease-in-out infinite; }
 @keyframes laugh { 50% { transform: translateY(-10px) rotate(2deg); } }
 @keyframes groan { 30%, 70% { transform: translateY(8px) scale(.97, 1.03); } }
 @keyframes nod { 50% { transform: translateY(10px) rotate(1deg); } }
@@ -95,7 +96,7 @@ button { font: inherit; }
 .push { margin-left: auto; }
 .treat-slide {
   position: absolute; z-index: 6; left: 50%; top: 34%; width: 24%; aspect-ratio: 1;
-  animation: treat-in 1.4s cubic-bezier(.2, .8, .2, 1) both;
+  margin-left: var(--dx, 0); animation: treat-in 3.2s ease-in-out both;
   pointer-events: none;
 }
 .treat-slide.drink { transform-origin: 20% 85%; }
@@ -104,11 +105,12 @@ button { font: inherit; }
 .treat-slide.drink .treat-prop { transform: rotate(-12deg); }
 .treat-slide.eat .treat-prop { transform: rotate(-10deg); }
 @keyframes treat-in {
-  0% { opacity: 0; transform: translate(70%, 80%) scale(.35) rotate(18deg); }
-  22% { opacity: 1; }
-  58% { transform: translate(0, 0) scale(1) rotate(-4deg); }
-  78% { transform: translate(-4%, -3%) scale(1.03) rotate(2deg); }
-  100% { opacity: 0; transform: translate(-10%, -7%) scale(.9) rotate(-8deg); }
+  0% { opacity: 0; transform: translate(70%, 90%) scale(.35) rotate(18deg); }
+  18% { opacity: 1; }
+  38% { transform: translate(0, 0) scale(1) rotate(-4deg); }
+  50%, 68% { transform: translate(-2%, -2%) scale(1.04) rotate(2deg); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-12%, -8%) scale(.9) rotate(-8deg); }
 }
 .info-backdrop {
   position: absolute; z-index: 20; inset: 0; display: grid; place-items: center; padding: 24px;
@@ -140,4 +142,10 @@ button { font: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+.toast {
+  position: absolute; z-index: 8; left: 50%; bottom: calc(2.2cqh + var(--btn) + 18px); transform: translateX(-50%); margin: 0; max-width: 46cqw;
+  padding: 8px 12px; text-align: center; font-size: .8rem; font-weight: 800; line-height: 1.3;
+  background: rgba(16, 38, 31, .85); border: 1px solid rgba(255, 255, 255, .35); border-radius: 12px;
 }

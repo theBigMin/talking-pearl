@@ -1,6 +1,8 @@
 # Talking Pearl
 
-A small toy built with React, TypeScript and Vite. Call Pearl, tap to talk, and see how he reacts: he laughs, groans, or stares blankly.
+Talk and interact with your favorite person, Tom Pearl.
+
+A small toy built with React, TypeScript and Vite. Call Pearl, talk to him, and see how he reacts: he laughs, groans, says yes, or says no. Give him a drink or a snack, or tap the speaker to hear him say hi.
 
 ## Run it
 
