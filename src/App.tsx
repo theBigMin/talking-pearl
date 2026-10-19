@@ -1,8 +1,8 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { FlaskConical, Info, Phone, Utensils, Volume2, Wine } from 'lucide-react';
-import defaultImage from '@/assets/pearl-default.png';
-import laughImage from '@/assets/pearl-laugh.png';
-import groanImage from '@/assets/pearl-groan.png';
+import defaultImage from '@/assets/pearl-default-cutout.png';
+import laughImage from '@/assets/pearl-laugh-cutout.png';
+import groanImage from '@/assets/pearl-groan-cutout.png';
 import laughSound from '@/assets/sounds/pearl-laugh.mp3';
 import gagSound from '@/assets/sounds/pearl-gag.mp3';
 import noSound from '@/assets/sounds/pearl-no.mp3';

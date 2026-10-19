@@ -48,7 +48,7 @@ button { font: inherit; }
 .chair-back { z-index: 1; }
 .chair-front { z-index: 3; }
 .body { position: absolute; inset: 0; z-index: 4; width: 100%; height: 100%; overflow: visible; }
-/* Only Pearl's head is shown: --hx/--hy = head centre and --hs = head width, as fractions of each photo. */
+/* The source photos are transparent head cutouts; these values position each expression in the chair. */
 .pearl {
   --hx: .49; --hy: .4; --hs: .6;
   position: absolute; z-index: 5; left: 24%; top: 12%; width: 52%; aspect-ratio: 1; overflow: visible;
@@ -57,13 +57,6 @@ button { font: inherit; }
 .pearl img {
   position: absolute; max-width: none; height: auto; width: calc(58% / var(--hs));
   left: calc(50% - var(--hx) * 58% / var(--hs)); top: calc(50% - var(--hy) * 58% / var(--hs));
-  clip-path: polygon(48% 2%, 64% 5%, 79% 16%, 91% 32%, 94% 50%, 87% 68%, 77% 78%, 67% 84%, 58% 88%, 48% 89%, 38% 87%, 28% 82%, 19% 73%, 10% 59%, 6% 43%, 11% 28%, 23% 14%, 36% 6%);
-}
-.pearl.react-laugh img {
-  clip-path: polygon(43% 8%, 57% 6%, 70% 12%, 78% 25%, 79% 43%, 74% 58%, 66% 68%, 58% 72%, 48% 74%, 38% 70%, 29% 62%, 23% 49%, 22% 33%, 28% 20%, 35% 12%);
-}
-.pearl.react-groan img {
-  clip-path: polygon(43% 1%, 60% 3%, 72% 12%, 78% 27%, 78% 44%, 72% 59%, 64% 70%, 53% 76%, 43% 76%, 33% 71%, 24% 60%, 19% 46%, 20% 29%, 28% 15%, 35% 6%);
 }
 .pearl.react-laugh { --hx: .54; --hy: .34; --hs: .44; }
 .pearl.react-groan { --hx: .51; --hy: .44; --hs: .68; }
