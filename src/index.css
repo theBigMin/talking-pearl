@@ -51,14 +51,15 @@ button { font: inherit; }
 /* Only Pearl's head is shown: --hx/--hy = head centre and --hs = head width, as fractions of each photo. */
 .pearl {
   --hx: .49; --hy: .4; --hs: .6;
-  position: absolute; z-index: 5; left: 21%; top: 10.7%; width: 58%; aspect-ratio: 1; overflow: hidden;
+  position: absolute; z-index: 5; left: 18%; top: 8%; width: 64%; aspect-ratio: 1; overflow: visible;
   transform-origin: 50% 100%; transition: transform .3s;
-  -webkit-mask-image: radial-gradient(closest-side, #000 86%, transparent 100%); mask-image: radial-gradient(closest-side, #000 86%, transparent 100%);
 }
 .pearl img {
-  position: absolute; max-width: none; height: auto; width: calc(64% / var(--hs));
-  left: calc(50% - var(--hx) * 64% / var(--hs)); top: calc(50% - var(--hy) * 64% / var(--hs));
+  position: absolute; max-width: none; height: auto; width: calc(70% / var(--hs));
+  left: calc(50% - var(--hx) * 70% / var(--hs)); top: calc(50% - var(--hy) * 70% / var(--hs));
+  clip-path: polygon(48% 1%, 67% 5%, 83% 17%, 94% 36%, 95% 56%, 87% 75%, 75% 90%, 61% 99%, 45% 100%, 30% 95%, 18% 84%, 8% 67%, 4% 48%, 10% 29%, 23% 13%, 37% 5%);
 }
+.pearl.react-laugh img, .pearl.react-groan img { clip-path: ellipse(47% 49% at 50% 50%); }
 .pearl.react-laugh { --hx: .54; --hy: .34; --hs: .44; }
 .pearl.react-groan { --hx: .51; --hy: .44; --hs: .68; }
 .pearl.hearing { transform: rotate(-4deg) scale(1.02); }
@@ -94,6 +95,37 @@ button { font: inherit; }
 .side-left { left: 5cqw; }
 .side-right { right: 5cqw; }
 .push { margin-left: auto; }
+.treat-slide {
+  position: absolute; z-index: 6; left: 50%; top: 34%; width: 24%; aspect-ratio: 1;
+  animation: treat-in 1.4s cubic-bezier(.2, .8, .2, 1) both;
+  pointer-events: none;
+}
+.treat-slide.drink { transform-origin: 20% 85%; }
+.treat-slide.eat { transform-origin: 30% 75%; }
+.treat-prop { display: block; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 5px 4px rgba(0, 0, 0, .35)); }
+.treat-slide.drink .treat-prop { transform: rotate(-12deg); }
+.treat-slide.eat .treat-prop { transform: rotate(-10deg); }
+@keyframes treat-in {
+  0% { opacity: 0; transform: translate(70%, 80%) scale(.35) rotate(18deg); }
+  22% { opacity: 1; }
+  58% { transform: translate(0, 0) scale(1) rotate(-4deg); }
+  78% { transform: translate(-4%, -3%) scale(1.03) rotate(2deg); }
+  100% { opacity: 0; transform: translate(-10%, -7%) scale(.9) rotate(-8deg); }
+}
+.info-backdrop {
+  position: absolute; z-index: 20; inset: 0; display: grid; place-items: center; padding: 24px;
+  background: rgba(11, 24, 18, .48); backdrop-filter: blur(3px);
+}
+.info-card {
+  position: relative; width: min(360px, 100%); padding: 28px 26px 24px; color: #243029;
+  background: #fff8e8; border: 4px solid #fff; border-radius: 22px; box-shadow: 0 16px 40px rgba(0, 0, 0, .35);
+}
+.info-card h2 { margin: 0 0 12px; font-size: 1.35rem; color: #1b4d31; }
+.info-card p { margin: 10px 0 0; line-height: 1.5; }
+.info-close {
+  position: absolute; top: 8px; right: 12px; padding: 0; border: 0; color: #314138; background: transparent;
+  font-size: 28px; line-height: 1; cursor: pointer;
+}
 .hud-btn, .round-btn {
   width: var(--btn); aspect-ratio: 1; display: grid; place-items: center; cursor: pointer; flex: none;
   border: 3px solid rgba(255, 255, 255, .95); border-radius: 50%; box-shadow: 0 4px 9px rgba(0, 0, 0, .38); transition: transform .15s, filter .15s;

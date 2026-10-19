@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { Clapperboard, Dog, FlaskConical, Gamepad2, Info, Phone, Utensils, Video, Wine } from 'lucide-react';
+import { FlaskConical, Info, Phone, Utensils, Volume2, Wine } from 'lucide-react';
 import defaultImage from '@/assets/pearl-default.png';
 import laughImage from '@/assets/pearl-laugh.png';
 import groanImage from '@/assets/pearl-groan.png';
@@ -13,6 +13,7 @@ import { useVoiceActivity } from '@/useVoiceActivity';
 
 type Reaction = 'default' | 'laugh' | 'groan' | 'no' | 'yes';
 type CallState = 'idle' | 'ringing' | 'connected';
+type TreatAction = 'drink' | 'eat' | null;
 
 const REACTIONS: Exclude<Reaction, 'default'>[] = ['laugh', 'groan', 'no', 'yes'];
 const RING_MS = 1400;
@@ -129,12 +130,34 @@ function RotaryPhone({ lifted }: { lifted: boolean }) {
   );
 }
 
-/** Round icon button from the reference screen. Placeholder: it doesn't do anything yet. */
-function HudButton({ label, color, className = '', children }: { label: string; color: string; className?: string; children: ReactNode }) {
+function HudButton({ label, color, className = '', onClick, children }: { label: string; color: string; className?: string; onClick?: () => void; children: ReactNode }) {
   return (
-    <button type="button" className={`hud-btn ${className}`} style={{ color }} aria-label={label} title={label}>
+    <button type="button" className={`hud-btn ${className}`} style={{ color }} aria-label={label} title={label} onClick={onClick}>
       {children}
     </button>
+  );
+}
+
+function DrinkProp() {
+  return (
+    <svg className="treat-prop drink-prop" viewBox="0 0 120 180" aria-label="A glass of beer">
+      <path d="M27 25h66l-7 119q-2 19-26 19t-26-19Z" fill="#f6b51b" stroke="#fff" strokeWidth="5" />
+      <path d="M28 41h64l-2-16H30Z" fill="#fff8df" opacity=".95" />
+      <path d="M29 43h62" stroke="#dda916" strokeWidth="3" opacity=".8" />
+      <path d="M29 25h62" stroke="#fff" strokeWidth="5" strokeLinecap="round" />
+      <path d="M33 58 39 140M45 58l5 78" stroke="#fff" strokeWidth="4" opacity=".35" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FoodProp() {
+  return (
+    <svg className="treat-prop food-prop" viewBox="0 0 180 150" aria-label="A plate of food">
+      <ellipse cx="90" cy="115" rx="76" ry="20" fill="#c8cbd0" stroke="#fff" strokeWidth="5" />
+      <ellipse cx="90" cy="103" rx="53" ry="33" fill="#eee" stroke="#d1d4d7" strokeWidth="4" />
+      <path d="M52 93c3-25 23-38 43-26 16-17 42-3 35 19 19 13-1 35-22 25-14 16-42 8-43-11-9-1-15-3-13-7Z" fill="#47342c" />
+      <circle cx="76" cy="75" r="5" fill="#6b5040" /><circle cx="105" cy="82" r="5" fill="#6b5040" /><circle cx="94" cy="105" r="4" fill="#33251f" />
+    </svg>
   );
 }
 
@@ -143,6 +166,8 @@ export default function App() {
   const [reaction, setReaction] = useState<Reaction>('default');
   const [hearing, setHearing] = useState(false);
   const [notice, setNotice] = useState('');
+  const [treatAction, setTreatAction] = useState<TreatAction>(null);
+  const [showInfo, setShowInfo] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastReaction = useRef<Reaction>('default');
   const callId = useRef(0);
@@ -151,6 +176,7 @@ export default function App() {
   const connected = useRef(false);
   const mood = useRef(0);
   const callSounds = useRef<{ pickUp?: HTMLAudioElement; hangUp?: HTMLAudioElement }>({});
+  const treatTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const voice = useVoiceActivity({
     onSpeechStart: () => setHearing(true),
@@ -217,6 +243,31 @@ export default function App() {
     setNotice(message);
   }
 
+  function playTreatSound(action: Exclude<TreatAction, null>) {
+    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = action === 'drink' ? 'sine' : 'triangle';
+    oscillator.frequency.setValueAtTime(action === 'drink' ? 520 : 180, context.currentTime);
+    oscillator.frequency.exponentialRampToValueAtTime(action === 'drink' ? 220 : 95, context.currentTime + .45);
+    gain.gain.setValueAtTime(.0001, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.16, context.currentTime + .02);
+    gain.gain.exponentialRampToValueAtTime(.0001, context.currentTime + .48);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + .5);
+    oscillator.addEventListener('ended', () => { void context.close(); }, { once: true });
+  }
+
+  function giveTreat(action: Exclude<TreatAction, null>) {
+    if (treatTimer.current) clearTimeout(treatTimer.current);
+    setTreatAction(action);
+    playTreatSound(action);
+    treatTimer.current = setTimeout(() => setTreatAction(null), 1400);
+  }
+
   async function callPearl() {
     setNotice('');
     setCallState('ringing');
@@ -261,9 +312,7 @@ export default function App() {
         <h1 className="sr-only">Talking Pearl</h1>
 
         <div className="hud-top">
-          <HudButton label="Record a video" color="#b3202a"><Video size={26} /></HudButton>
-          <HudButton label="Watch videos" color="#b3202a"><Clapperboard size={26} /></HudButton>
-          <HudButton label="About" color="#444" className="small push"><Info size={20} /></HudButton>
+          <HudButton label="About the game" color="#444" className="small push" onClick={() => setShowInfo(true)}><Info size={20} /></HudButton>
         </div>
         <p className="status" aria-live="polite" hidden={!status}>
           <span className={`dot ${callState === 'connected' ? 'live' : ''}`} />
@@ -277,19 +326,23 @@ export default function App() {
           <div className={`pearl ${hearing ? 'hearing' : ''} react-${reaction}`}>
             <img src={images[reaction]} alt={alts[reaction]} />
           </div>
+          {treatAction && (
+            <div className={`treat-slide ${treatAction}`}>
+              {treatAction === 'drink' ? <DrinkProp /> : <FoodProp />}
+            </div>
+          )}
         </div>
 
         <div className="side-table">
           <RotaryPhone lifted={callState !== 'idle'} />
         </div>
 
-        <HudButton label="Games" color="#33333a" className="side-left"><Gamepad2 size={28} /></HudButton>
         <HudButton label="Lab" color="#8a3fb5" className="side-right"><FlaskConical size={26} /></HudButton>
 
         <div className="hud-bottom">
-          <HudButton label="Drinks" color="#3d7a3a"><Wine size={26} /></HudButton>
-          <HudButton label="Food" color="#7a4a2a"><Utensils size={26} /></HudButton>
-          <HudButton label="Tricks" color="#8a6a4a"><Dog size={28} /></HudButton>
+          <HudButton label="Give Pearl a drink" color="#3d7a3a" onClick={() => giveTreat('drink')}><Wine size={26} /></HudButton>
+          <HudButton label="Give Pearl food" color="#7a4a2a" onClick={() => giveTreat('eat')}><Utensils size={26} /></HudButton>
+          <HudButton label="Play a sound" color="#315d68" onClick={() => playTreatSound('eat')}><Volume2 size={27} /></HudButton>
           {callState === 'idle' && (
             <button type="button" className="round-btn call" aria-label="Call Pearl" onClick={callPearl}>
               <Phone size={30} />
@@ -306,6 +359,16 @@ export default function App() {
             </button>
           )}
         </div>
+        {showInfo && (
+          <div className="info-backdrop" role="presentation" onClick={() => setShowInfo(false)}>
+            <section className="info-card" role="dialog" aria-modal="true" aria-labelledby="info-title" onClick={(event) => event.stopPropagation()}>
+              <button type="button" className="info-close" aria-label="Close game information" onClick={() => setShowInfo(false)}>×</button>
+              <h2 id="info-title">Talking Pearl</h2>
+              <p>Call Pearl, talk to him, and wait for his reaction. Try the drink and food buttons to see them slide up beside his mouth.</p>
+              <p>Use the red phone button whenever you want to end the call.</p>
+            </section>
+          </div>
+        )}
       </section>
     </main>
   );
