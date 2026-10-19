@@ -51,15 +51,20 @@ button { font: inherit; }
 /* Only Pearl's head is shown: --hx/--hy = head centre and --hs = head width, as fractions of each photo. */
 .pearl {
   --hx: .49; --hy: .4; --hs: .6;
-  position: absolute; z-index: 5; left: 18%; top: 8%; width: 64%; aspect-ratio: 1; overflow: visible;
+  position: absolute; z-index: 5; left: 24%; top: 12%; width: 52%; aspect-ratio: 1; overflow: visible;
   transform-origin: 50% 100%; transition: transform .3s;
 }
 .pearl img {
-  position: absolute; max-width: none; height: auto; width: calc(70% / var(--hs));
-  left: calc(50% - var(--hx) * 70% / var(--hs)); top: calc(50% - var(--hy) * 70% / var(--hs));
-  clip-path: polygon(48% 1%, 67% 5%, 83% 17%, 94% 36%, 95% 56%, 87% 75%, 75% 90%, 61% 99%, 45% 100%, 30% 95%, 18% 84%, 8% 67%, 4% 48%, 10% 29%, 23% 13%, 37% 5%);
+  position: absolute; max-width: none; height: auto; width: calc(58% / var(--hs));
+  left: calc(50% - var(--hx) * 58% / var(--hs)); top: calc(50% - var(--hy) * 58% / var(--hs));
+  clip-path: polygon(48% 2%, 64% 5%, 79% 16%, 91% 32%, 94% 50%, 87% 68%, 77% 78%, 67% 84%, 58% 88%, 48% 89%, 38% 87%, 28% 82%, 19% 73%, 10% 59%, 6% 43%, 11% 28%, 23% 14%, 36% 6%);
 }
-.pearl.react-laugh img, .pearl.react-groan img { clip-path: ellipse(47% 49% at 50% 50%); }
+.pearl.react-laugh img {
+  clip-path: polygon(43% 8%, 57% 6%, 70% 12%, 78% 25%, 79% 43%, 74% 58%, 66% 68%, 58% 72%, 48% 74%, 38% 70%, 29% 62%, 23% 49%, 22% 33%, 28% 20%, 35% 12%);
+}
+.pearl.react-groan img {
+  clip-path: polygon(43% 1%, 60% 3%, 72% 12%, 78% 27%, 78% 44%, 72% 59%, 64% 70%, 53% 76%, 43% 76%, 33% 71%, 24% 60%, 19% 46%, 20% 29%, 28% 15%, 35% 6%);
+}
 .pearl.react-laugh { --hx: .54; --hy: .34; --hs: .44; }
 .pearl.react-groan { --hx: .51; --hy: .44; --hs: .68; }
 .pearl.hearing { transform: rotate(-4deg) scale(1.02); }
