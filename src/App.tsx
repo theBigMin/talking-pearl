@@ -1,137 +1,289 @@
-import { useEffect, useRef, useState } from 'react';
-import { Mic, Phone, PhoneCall, RotateCcw, Sparkles } from 'lucide-react';
-import laughImage from '@/assets/image.png';
-import defaultImage from '@/assets/image copy.png';
-import groanImage from '@/assets/image copy 2.png';
-import noReactionImage from '@/assets/image copy 3.png';
+import { useRef, useState } from 'react';
+import { Phone } from 'lucide-react';
+import defaultImage from '@/assets/pearl-default.png';
+import laughImage from '@/assets/pearl-laugh.png';
+import groanImage from '@/assets/pearl-groan.png';
+import laughSound from '@/assets/sounds/pearl-laugh.mp3';
+import gagSound from '@/assets/sounds/pearl-gag.mp3';
+import noSound from '@/assets/sounds/pearl-no.mp3';
+import yesSound from '@/assets/sounds/pearl-yes.mp3';
+import pickUpSound from '@/assets/sounds/phone-pick-up.mp3';
+import hangUpSound from '@/assets/sounds/phone-hang-up.mp3';
+import { useVoiceActivity } from '@/useVoiceActivity';
 
-type Reaction = 'default' | 'laugh' | 'groan' | 'silent';
+type Reaction = 'default' | 'laugh' | 'groan' | 'no' | 'yes';
 type CallState = 'idle' | 'ringing' | 'connected';
 
-const reactionImages: Record<Reaction, string> = {
+const REACTIONS: Exclude<Reaction, 'default'>[] = ['laugh', 'groan', 'no', 'yes'];
+const RING_MS = 1400;
+const MAX_SOUND_MS = 8000; // safety net if a sound never finishes
+
+// Pearl's secret mood: laughs cheer him up, "no" and gags annoy him.
+const MOOD_CHANGE: Record<Exclude<Reaction, 'default'>, number> = { laugh: 1, groan: -1, no: -1, yes: 0 };
+const MOOD_MAX = 2;
+const MOOD_HANG_UP = -3; // at or below this, Pearl hangs up himself
+
+const images: Record<Reaction, string> = {
   default: defaultImage,
   laugh: laughImage,
   groan: groanImage,
-  silent: noReactionImage,
+  no: defaultImage,
+  yes: defaultImage,
+};
+const alts: Record<Reaction, string> = {
+  default: 'Pearl sitting in his armchair',
+  laugh: 'Pearl laughing',
+  groan: 'Pearl groaning',
+  no: 'Pearl shaking his head no',
+  yes: 'Pearl nodding yes',
+};
+const soundFiles: Partial<Record<Reaction, string>> = {
+  laugh: laughSound,
+  groan: gagSound,
+  no: noSound,
+  yes: yesSound,
 };
 
-const reactionCopy: Record<Reaction, string> = {
-  default: 'Pearl is waiting to hear you.',
-  laugh: 'Pearl cracks up at what you said.',
-  groan: 'Pearl lets out a big groan.',
-  silent: 'Pearl stares right through you.',
-};
+// Browsers only allow sound after a tap, so "unlock" each clip during the call tap.
+function unlock(a: HTMLAudioElement) {
+  a.muted = true;
+  a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+}
 
-function App() {
-  const [reaction, setReaction] = useState<Reaction>('default');
+function Chair({ layer }: { layer: 'back' | 'front' }) {
+  const id = `fabric-${layer}`;
+  return (
+    <svg className={`chair chair-${layer}`} viewBox="0 0 400 460" aria-hidden="true">
+      <defs>
+        <pattern id={id} width="28" height="28" patternUnits="userSpaceOnUse">
+          <rect width="28" height="28" fill="#8a1d2a" />
+          <path d="M14 3 L19 14 L14 25 L9 14Z" fill="#a8313d" />
+          <circle cx="0" cy="0" r="2.5" fill="#6d1420" />
+          <circle cx="28" cy="28" r="2.5" fill="#6d1420" />
+        </pattern>
+      </defs>
+      {layer === 'back' ? (
+        <>
+          <rect x="62" y="410" width="28" height="50" rx="4" fill="#4a2616" />
+          <rect x="310" y="410" width="28" height="50" rx="4" fill="#4a2616" />
+          <rect x="48" y="6" width="304" height="372" rx="120" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+          {[120, 200, 280].map((x) => (
+            <circle key={x} cx={x} cy={x === 200 ? 50 : 72} r="7" fill="#5c121c" />
+          ))}
+        </>
+      ) : (
+        <>
+          <rect x="40" y="346" width="320" height="96" rx="34" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+          <rect x="30" y="298" width="340" height="76" rx="36" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+          <rect x="48" y="306" width="304" height="22" rx="11" fill="#fff" opacity=".1" />
+          <rect x="3" y="196" width="96" height="222" rx="44" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+          <rect x="301" y="196" width="96" height="222" rx="44" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** An original fuzzy plush body that Pearl's head sits on. */
+function Body() {
+  return (
+    <svg className="body" viewBox="0 0 400 460" aria-hidden="true">
+      <defs>
+        <radialGradient id="fur-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#e3c48f"/><stop offset=".6" stopColor="#c49c64"/><stop offset="1" stopColor="#a47d48"/></radialGradient>
+        <radialGradient id="belly-g" cx=".5" cy=".4" r=".7"><stop offset="0" stopColor="#f3e4bd"/><stop offset="1" stopColor="#dcc291"/></radialGradient>
+        <radialGradient id="pad-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#9a7a83"/><stop offset="1" stopColor="#64484f"/></radialGradient>
+        <pattern id="fur-p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l2 -5 M6 9 l2 -5 M3.5 4 l1 -3 M8 4 l1.5 -3" stroke="#8f6a38" strokeOpacity=".45" strokeWidth="1.3" strokeLinecap="round" fill="none"/></pattern>
+      </defs>
+      <ellipse cx="200" cy="360" rx="112" ry="14" fill="#2a0a10" opacity=".35" />
+      <g transform="translate(0 -30)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
+        <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-g)"/>
+        <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-p)" stroke="none"/>
+        <ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#belly-g)" stroke="none"/><ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#fur-p)" stroke="none" opacity=".6"/>
+        <g><ellipse cx="150" cy="418" rx="50" ry="42" fill="url(#fur-g)"/><ellipse cx="150" cy="418" rx="50" ry="42" fill="url(#fur-p)" stroke="none"/>
+          <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="150" cy="430" rx="22" ry="17"/><ellipse cx="121" cy="406" rx="8" ry="9"/><ellipse cx="138" cy="394" rx="8" ry="9"/><ellipse cx="162" cy="394" rx="8" ry="9"/><ellipse cx="179" cy="406" rx="8" ry="9"/></g></g>
+        <g><ellipse cx="250" cy="418" rx="50" ry="42" fill="url(#fur-g)"/><ellipse cx="250" cy="418" rx="50" ry="42" fill="url(#fur-p)" stroke="none"/>
+          <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="250" cy="430" rx="22" ry="17"/><ellipse cx="221" cy="406" rx="8" ry="9"/><ellipse cx="238" cy="394" rx="8" ry="9"/><ellipse cx="262" cy="394" rx="8" ry="9"/><ellipse cx="279" cy="406" rx="8" ry="9"/></g></g>
+        <path d="M130 274 Q92 280 58 268" fill="none" stroke="#85612f" strokeWidth="50"/><path d="M130 274 Q92 280 58 268" fill="none" stroke="url(#fur-g)" strokeWidth="44"/><path d="M130 274 Q92 280 58 268" fill="none" stroke="url(#fur-p)" strokeWidth="44"/>
+        <path d="M270 274 Q308 280 342 268" fill="none" stroke="#85612f" strokeWidth="50"/><path d="M270 274 Q308 280 342 268" fill="none" stroke="url(#fur-g)" strokeWidth="44"/><path d="M270 274 Q308 280 342 268" fill="none" stroke="url(#fur-p)" strokeWidth="44"/>
+        <ellipse cx="48" cy="262" rx="29" ry="25" fill="url(#fur-g)"/><ellipse cx="352" cy="262" rx="29" ry="25" fill="url(#fur-g)"/>
+      </g>
+    </svg>
+  );
+}
+
+function RotaryPhone({ lifted }: { lifted: boolean }) {
+  return (
+    <svg className={`phone ${lifted ? 'lifted' : ''}`} viewBox="0 0 120 90" aria-hidden="true">
+      <path d="M14 62 q-14 6 -10 22 q4 8 14 4" className="cord" />
+      <rect x="14" y="42" width="92" height="42" rx="15" className="phone-body" />
+      <circle cx="60" cy="63" r="16" className="phone-dial" />
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <circle key={i} cx={60 + 10 * Math.cos((i * Math.PI) / 3)} cy={63 + 10 * Math.sin((i * Math.PI) / 3)} r="2.3" className="phone-hole" />
+      ))}
+      <g className="handset">
+        <rect x="8" y="22" width="104" height="15" rx="7.5" className="phone-body" />
+        <rect x="4" y="26" width="25" height="17" rx="7" className="phone-body" />
+        <rect x="91" y="26" width="25" height="17" rx="7" className="phone-body" />
+      </g>
+    </svg>
+  );
+}
+
+export default function App() {
   const [callState, setCallState] = useState<CallState>('idle');
-  const [isReacting, setIsReacting] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reaction, setReaction] = useState<Reaction>('default');
+  const [hearing, setHearing] = useState(false);
+  const [notice, setNotice] = useState('');
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastReaction = useRef<Reaction>('default');
+  const callId = useRef(0);
+  const sounds = useRef<Partial<Record<Reaction, HTMLAudioElement>>>({});
 
-  const showReaction = (nextReaction: Reaction) => {
-    setReaction(nextReaction);
-    setIsReacting(true);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setIsReacting(false), 560);
+  const connected = useRef(false);
+  const mood = useRef(0);
+  const callSounds = useRef<{ pickUp?: HTMLAudioElement; hangUp?: HTMLAudioElement }>({});
+
+  const voice = useVoiceActivity({
+    onSpeechStart: () => setHearing(true),
+    onSpeechEnd: () => react(),
+    onIdleTimeout: () => hangUp('Pearl got bored and hung up.'),
+  });
+
+  const later = (fn: () => void, ms: number) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(fn, ms);
   };
 
-  const callPearl = () => {
-    setCallState('ringing');
-    setReaction('default');
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setCallState('connected'), 1100);
-  };
+  // Play a sound, then run `next` once it ends (or after maxMs as a safety net).
+  function playThen(sound: HTMLAudioElement | undefined, next: () => void, maxMs: number) {
+    if (!sound) {
+      later(next, 300);
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      if (timer.current) clearTimeout(timer.current);
+      sound.onended = null;
+      next();
+    };
+    sound.onended = finish;
+    sound.currentTime = 0;
+    sound.play().catch(finish);
+    later(finish, maxMs);
+  }
 
-  const hangUp = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
+  // Pearl does a random action (never the same one twice), adjusts his mood, then listens again.
+  function react() {
+    voice.setListening(false);
+    setHearing(false);
+    const options = REACTIONS.filter((r) => r !== lastReaction.current);
+    const next = options[Math.floor(Math.random() * options.length)];
+    lastReaction.current = next;
+    mood.current = Math.min(MOOD_MAX, mood.current + MOOD_CHANGE[next]);
+    setReaction(next);
+    playThen(sounds.current[next], () => {
+      setReaction('default');
+      if (mood.current <= MOOD_HANG_UP) hangUp('Pearl got annoyed and hung up.');
+      else voice.setListening(true);
+    }, MAX_SOUND_MS);
+  }
+
+  function hangUp(message = '') {
+    callId.current += 1;
+    if (timer.current) clearTimeout(timer.current);
+    voice.stop();
+    Object.values(sounds.current).forEach((a) => { a.onended = null; a.pause(); a.currentTime = 0; });
+    const pickUp = callSounds.current.pickUp;
+    if (pickUp) { pickUp.onended = null; pickUp.pause(); }
+    if (connected.current) {
+      connected.current = false;
+      const bye = callSounds.current.hangUp;
+      if (bye) { bye.currentTime = 0; void bye.play().catch(() => {}); }
+    }
     setCallState('idle');
     setReaction('default');
-    setIsReacting(false);
-  };
+    setHearing(false);
+    setNotice(message);
+  }
 
-  const talkToPearl = () => {
-    if (callState !== 'connected' || isReacting) return;
-    const reactions: Reaction[] = ['laugh', 'groan', 'silent'];
-    const nextReaction = reactions[Math.floor(Math.random() * reactions.length)];
-    showReaction(nextReaction);
-  };
+  async function callPearl() {
+    setNotice('');
+    setCallState('ringing');
+    if (!Object.keys(sounds.current).length) {
+      for (const [name, src] of Object.entries(soundFiles)) sounds.current[name as Reaction] = new Audio(src);
+      callSounds.current = { pickUp: new Audio(pickUpSound), hangUp: new Audio(hangUpSound) };
+    }
+    [...Object.values(sounds.current), ...Object.values(callSounds.current)].forEach(unlock);
+    const id = ++callId.current;
+    try {
+      await voice.start();
+    } catch {
+      hangUp('Allow microphone access so Pearl can hear you.');
+      return;
+    }
+    if (id !== callId.current) {
+      voice.stop(); // hung up while the permission prompt was open
+      return;
+    }
+    later(() => {
+      connected.current = true;
+      mood.current = 0;
+      setCallState('connected');
+      playThen(callSounds.current.pickUp, () => voice.setListening(true), 2000);
+    }, RING_MS);
+  }
 
-  useEffect(() => () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  }, []);
-
-  const status = callState === 'idle'
-    ? reactionCopy[reaction]
-    : callState === 'ringing'
-      ? 'Pearl is picking up the phone...'
-      : isReacting
-        ? reactionCopy[reaction]
-        : 'Pearl is listening. Say something.';
+  const status =
+    callState === 'idle'
+      ? notice || 'Tap the green button to call Pearl.'
+      : callState === 'ringing'
+        ? 'Calling Pearl…'
+        : reaction !== 'default'
+          ? ''
+          : hearing
+            ? 'Pearl is listening…'
+            : 'Say something.';
 
   return (
-    <main className="app-shell">
-      <section className={`game-screen ${callState}`} aria-label="Talking Pearl">
-        <div className="pattern-wall" />
-        <div className="wood-floor" />
-        <div className="room-shadow" />
+    <main className="stage">
+      <section className={`room ${callState}`} aria-label="Talking Pearl">
+        <h1 className="sr-only">Talking Pearl</h1>
+        <p className="status" aria-live="polite" hidden={!status}>
+          <span className={`dot ${callState === 'connected' ? 'live' : ''}`} />
+          {status}
+        </p>
 
-        <header className="game-header">
-          <div className="game-title"><Sparkles size={13} /> TALKING PEARL</div>
-          <button className="reset-button" type="button" aria-label="Reset call" onClick={hangUp}>
-            <RotateCcw size={18} />
-          </button>
-        </header>
-
-        <div className="picture-frame frame-left" />
-        <div className="picture-frame frame-right" />
-        <div className="side-table">
-          <div className="lamp" />
-          <div className="table-top" />
-          <div className="table-leg table-leg-left" />
-          <div className="table-leg table-leg-right" />
-          <div className={`phone ${callState !== 'idle' ? 'phone-picked' : ''}`}>
-            <div className="phone-handset"><i /><b /></div>
-            <div className="phone-base"><div className="phone-dial"><span /><span /><span /><span /><span /><span /><span /><span /></div></div>
-            <div className="phone-cord" />
+        <div className="seat-area">
+          <Chair layer="back" />
+          <Chair layer="front" />
+          <Body />
+          <div className={`pearl ${hearing ? 'hearing' : ''} react-${reaction}`}>
+            <img src={images[reaction]} alt={alts[reaction]} />
           </div>
         </div>
 
-        <div className="armchair">
-          <div className="chair-back"><i /><i /><i /><i /><i /><i /></div>
-          <div className="chair-seat" />
-          <div className="chair-arm arm-left" />
-          <div className="chair-arm arm-right" />
-          <div className="chair-leg leg-left" />
-          <div className="chair-leg leg-right" />
-          <div className="chair-seam seam-left" />
-          <div className="chair-seam seam-right" />
+        <div className="side-table">
+          <RotaryPhone lifted={callState !== 'idle'} />
         </div>
 
-        <div className={`pearl-wrap ${isReacting ? 'is-bouncing' : ''}`}>
-          <div className="pearl-halo" />
-          <img className="pearl" src={reactionImages[reaction]} alt="Pearl" onClick={talkToPearl} />
-        </div>
-
-        <div className="pearl-name">PEARL</div>
-        <div className="status-pill" aria-live="polite"><span className={callState === 'connected' ? 'status-light live' : 'status-light'} />{status}</div>
-
-        <div className="call-controls">
-          {callState === 'idle' && (
-            <button className="call-button" type="button" onClick={callPearl}><PhoneCall size={22} /><span>Call Pearl</span></button>
-          )}
-          {callState === 'ringing' && (
-            <button className="call-button ringing-button" type="button" disabled><Phone size={22} /><span>Pearl is picking up...</span></button>
-          )}
-          {callState === 'connected' && (
-            <div className="connected-controls">
-              <button className={`talk-button ${isReacting ? 'talking' : ''}`} type="button" onClick={talkToPearl} disabled={isReacting}><Mic size={21} /><span>{isReacting ? 'Pearl is reacting...' : 'Tap to talk'}</span></button>
-              <button className="hangup-button" type="button" aria-label="End call" onClick={hangUp}><Phone size={20} /></button>
-            </div>
-          )}
-        </div>
+        {callState === 'idle' && (
+          <button type="button" className="round-btn call" aria-label="Call Pearl" onClick={callPearl}>
+            <Phone size={30} />
+          </button>
+        )}
+        {callState === 'ringing' && (
+          <button type="button" className="round-btn ring" aria-label="Calling Pearl" disabled>
+            <Phone size={30} />
+          </button>
+        )}
+        {callState === 'connected' && (
+          <button type="button" className="round-btn hang" aria-label="Hang up" onClick={() => hangUp()}>
+            <Phone size={30} />
+          </button>
+        )}
       </section>
     </main>
   );
 }
-
-export default App;
