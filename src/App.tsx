@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Phone } from 'lucide-react';
+import { useRef, useState, type ReactNode } from 'react';
+import { Clapperboard, Dog, FlaskConical, Gamepad2, Info, Phone, Utensils, Video, Wine } from 'lucide-react';
 import defaultImage from '@/assets/pearl-default.png';
 import laughImage from '@/assets/pearl-laugh.png';
 import groanImage from '@/assets/pearl-groan.png';
@@ -94,8 +94,8 @@ function Body() {
         <radialGradient id="pad-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#9a7a83"/><stop offset="1" stopColor="#64484f"/></radialGradient>
         <pattern id="fur-p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l2 -5 M6 9 l2 -5 M3.5 4 l1 -3 M8 4 l1.5 -3" stroke="#8f6a38" strokeOpacity=".45" strokeWidth="1.3" strokeLinecap="round" fill="none"/></pattern>
       </defs>
-      <ellipse cx="200" cy="360" rx="112" ry="14" fill="#2a0a10" opacity=".35" />
-      <g transform="translate(0 -30)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
+      <ellipse cx="200" cy="372" rx="130" ry="15" fill="#2a0a10" opacity=".35" />
+      <g transform="translate(200 400) scale(1.1) translate(-200 -400) translate(0 -30)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
         <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-g)"/>
         <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-p)" stroke="none"/>
         <ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#belly-g)" stroke="none"/><ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#fur-p)" stroke="none" opacity=".6"/>
@@ -126,6 +126,15 @@ function RotaryPhone({ lifted }: { lifted: boolean }) {
         <rect x="91" y="26" width="25" height="17" rx="7" className="phone-body" />
       </g>
     </svg>
+  );
+}
+
+/** Round icon button from the reference screen. Placeholder: it doesn't do anything yet. */
+function HudButton({ label, color, className = '', children }: { label: string; color: string; className?: string; children: ReactNode }) {
+  return (
+    <button type="button" className={`hud-btn ${className}`} style={{ color }} aria-label={label} title={label}>
+      {children}
+    </button>
   );
 }
 
@@ -250,6 +259,12 @@ export default function App() {
     <main className="stage">
       <section className={`room ${callState}`} aria-label="Talking Pearl">
         <h1 className="sr-only">Talking Pearl</h1>
+
+        <div className="hud-top">
+          <HudButton label="Record a video" color="#b3202a"><Video size={26} /></HudButton>
+          <HudButton label="Watch videos" color="#b3202a"><Clapperboard size={26} /></HudButton>
+          <HudButton label="About" color="#444" className="small push"><Info size={20} /></HudButton>
+        </div>
         <p className="status" aria-live="polite" hidden={!status}>
           <span className={`dot ${callState === 'connected' ? 'live' : ''}`} />
           {status}
@@ -268,21 +283,29 @@ export default function App() {
           <RotaryPhone lifted={callState !== 'idle'} />
         </div>
 
-        {callState === 'idle' && (
-          <button type="button" className="round-btn call" aria-label="Call Pearl" onClick={callPearl}>
-            <Phone size={30} />
-          </button>
-        )}
-        {callState === 'ringing' && (
-          <button type="button" className="round-btn ring" aria-label="Calling Pearl" disabled>
-            <Phone size={30} />
-          </button>
-        )}
-        {callState === 'connected' && (
-          <button type="button" className="round-btn hang" aria-label="Hang up" onClick={() => hangUp()}>
-            <Phone size={30} />
-          </button>
-        )}
+        <HudButton label="Games" color="#33333a" className="side-left"><Gamepad2 size={28} /></HudButton>
+        <HudButton label="Lab" color="#8a3fb5" className="side-right"><FlaskConical size={26} /></HudButton>
+
+        <div className="hud-bottom">
+          <HudButton label="Drinks" color="#3d7a3a"><Wine size={26} /></HudButton>
+          <HudButton label="Food" color="#7a4a2a"><Utensils size={26} /></HudButton>
+          <HudButton label="Tricks" color="#8a6a4a"><Dog size={28} /></HudButton>
+          {callState === 'idle' && (
+            <button type="button" className="round-btn call" aria-label="Call Pearl" onClick={callPearl}>
+              <Phone size={30} />
+            </button>
+          )}
+          {callState === 'ringing' && (
+            <button type="button" className="round-btn ring" aria-label="Calling Pearl" disabled>
+              <Phone size={30} />
+            </button>
+          )}
+          {callState === 'connected' && (
+            <button type="button" className="round-btn hang" aria-label="Hang up" onClick={() => hangUp()}>
+              <Phone size={30} />
+            </button>
+          )}
+        </div>
       </section>
     </main>
   );
