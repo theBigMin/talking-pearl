@@ -42,7 +42,8 @@ export function useVoiceActivity(handlers: Handlers) {
       audio: { echoCancellation: true, noiseSuppression: true },
     });
     const ctx = new AudioContext();
-    await ctx.resume();
+    // resume() can stay pending on some devices (no audio output, strict autoplay rules); don't let a call hang on it.
+    await Promise.race([ctx.resume(), new Promise((resolve) => setTimeout(resolve, 1000))]);
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 1024;
     ctx.createMediaStreamSource(media).connect(analyser);

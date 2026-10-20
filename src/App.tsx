@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { FlaskConical, Info, Phone, Utensils, Volume2, Wine } from 'lucide-react';
-import defaultImage from '@/assets/pearl-default.png';
-import laughImage from '@/assets/pearl-laugh.png';
-import groanImage from '@/assets/pearl-groan.png';
+import defaultImage from '@/assets/pearl-default-face.png';
+import laughImage from '@/assets/pearl-laugh-face.png';
+import groanImage from '@/assets/pearl-groan-face.png';
 import laughSound from '@/assets/sounds/pearl-laugh.mp3';
 import gagSound from '@/assets/sounds/pearl-gag.mp3';
 import noSound from '@/assets/sounds/pearl-no.mp3';
@@ -11,7 +11,7 @@ import pickUpSound from '@/assets/sounds/phone-pick-up.mp3';
 import hangUpSound from '@/assets/sounds/phone-hang-up.mp3';
 import greetingSound from '@/assets/sounds/hi-my-name-is-tom-pearl.mp3';
 import drinkSound from '@/assets/sounds/freesound_community-drinking-coffe-107121.mp3';
-import eatSound from '@/assets/sounds/pearl-eat.mp3';
+import eatSound from '@/assets/sounds/freesound_community-cartoon-slurp-37066.mp3';
 import { useVoiceActivity } from '@/useVoiceActivity';
 
 type Reaction = 'default' | 'laugh' | 'groan' | 'no' | 'yes';
@@ -26,7 +26,7 @@ const TREAT_MS = 3200; // how long a glass or plate stays on screen
 const MAX_TREATS = 6; // spamming the buttons stacks up to this many at once
 const TREAT_SOUNDS: Record<TreatKind, { src: string; ms: number }> = {
   drink: { src: drinkSound, ms: 2400 },
-  eat: { src: eatSound, ms: 900 },
+  eat: { src: eatSound, ms: 432 },
 };
 const GREETING_MS = 14000;
 const MAX_SOUND_MS = 8000; // safety net if a sound never finishes
@@ -64,33 +64,74 @@ function unlock(a: HTMLAudioElement) {
 }
 
 function Chair({ layer }: { layer: 'back' | 'front' }) {
-  const id = `fabric-${layer}`;
+  const fabric = `url(#fabric-${layer})`;
+  const piping = { fill: 'none', stroke: '#ff9aa6', strokeOpacity: 0.1, strokeWidth: 3 } as const;
   return (
     <svg className={`chair chair-${layer}`} viewBox="0 0 400 460" aria-hidden="true">
       <defs>
-        <pattern id={id} width="28" height="28" patternUnits="userSpaceOnUse">
+        <pattern id={`fabric-${layer}`} width="28" height="28" patternUnits="userSpaceOnUse">
           <rect width="28" height="28" fill="#8a1d2a" />
           <path d="M14 3 L19 14 L14 25 L9 14Z" fill="#a8313d" />
           <circle cx="0" cy="0" r="2.5" fill="#6d1420" />
           <circle cx="28" cy="28" r="2.5" fill="#6d1420" />
         </pattern>
+        <radialGradient id={`light-${layer}`} cx=".35" cy=".25" r=".95">
+          <stop offset="0" stopColor="#fff" stopOpacity=".09" />
+          <stop offset=".5" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity=".5" />
+        </radialGradient>
+        <linearGradient id={`arm-${layer}`} x1="0" x2="1">
+          <stop offset="0" stopColor="#000" stopOpacity=".42" />
+          <stop offset=".38" stopColor="#fff" stopOpacity=".08" />
+          <stop offset="1" stopColor="#000" stopOpacity=".5" />
+        </linearGradient>
+        <linearGradient id={`seat-${layer}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff" stopOpacity=".08" />
+          <stop offset=".45" stopColor="#fff" stopOpacity="0" />
+          <stop offset="1" stopColor="#000" stopOpacity=".5" />
+        </linearGradient>
+        <linearGradient id={`wood-${layer}`} x1="0" x2="1">
+          <stop offset="0" stopColor="#35190b" />
+          <stop offset=".5" stopColor="#85532b" />
+          <stop offset="1" stopColor="#30160a" />
+        </linearGradient>
+        <filter id={`blur-${layer}`}><feGaussianBlur stdDeviation="3" /></filter>
       </defs>
       {layer === 'back' ? (
         <>
-          <rect x="62" y="410" width="28" height="50" rx="4" fill="#4a2616" />
-          <rect x="310" y="410" width="28" height="50" rx="4" fill="#4a2616" />
-          <rect x="48" y="6" width="304" height="372" rx="120" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
-          {[120, 200, 280].map((x) => (
-            <circle key={x} cx={x} cy={x === 200 ? 50 : 72} r="7" fill="#5c121c" />
+          <path d="M58 404 L94 404 L88 460 L66 460Z M306 404 L342 404 L334 460 L312 460Z" fill={`url(#wood-${layer})`} />
+          <rect x="48" y="6" width="304" height="372" rx="120" fill={fabric} stroke="#4d0f19" strokeWidth="6" />
+          <rect x="48" y="6" width="304" height="372" rx="120" fill={`url(#light-${layer})`} />
+          <rect x="60" y="18" width="280" height="348" rx="108" {...piping} />
+          <g fill="none" stroke="#2a0509" strokeOpacity=".4" strokeWidth="7" strokeLinecap="round" filter={`url(#blur-${layer})`}>
+            <path d="M120 72 Q200 112 280 72 M120 72 Q112 140 140 200 M280 72 Q288 140 260 200 M140 200 Q200 236 260 200" />
+          </g>
+          {[[120, 72], [200, 50], [280, 72], [140, 200], [260, 200]].map(([x, y]) => (
+            <g key={`${x}-${y}`}>
+              <circle cx={x} cy={y + 2} r="8" fill="#2a0509" opacity=".45" />
+              <circle cx={x} cy={y} r="7" fill="#6a1220" />
+              <circle cx={x - 2} cy={y - 2} r="2.5" fill="#fff" opacity=".35" />
+            </g>
           ))}
         </>
       ) : (
         <>
-          <rect x="40" y="346" width="320" height="96" rx="34" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
-          <rect x="30" y="298" width="340" height="76" rx="36" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
-          <rect x="48" y="306" width="304" height="22" rx="11" fill="#fff" opacity=".1" />
-          <rect x="3" y="196" width="96" height="222" rx="44" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
-          <rect x="301" y="196" width="96" height="222" rx="44" fill={`url(#${id})`} stroke="#5c121c" strokeWidth="6" />
+          <rect x="40" y="346" width="320" height="96" rx="34" fill={fabric} stroke="#4d0f19" strokeWidth="6" />
+          <rect x="40" y="346" width="320" height="96" rx="34" fill={`url(#seat-${layer})`} />
+          <rect x="30" y="298" width="340" height="76" rx="36" fill={fabric} stroke="#4d0f19" strokeWidth="6" />
+          <rect x="30" y="298" width="340" height="76" rx="36" fill={`url(#seat-${layer})`} />
+          <rect x="42" y="308" width="316" height="52" rx="26" {...piping} />
+          {[0, 1].map((i) => {
+            const x = i ? 301 : 3;
+            return (
+              <g key={i}>
+                <rect x={x} y="244" width="96" height="174" rx="44" fill={fabric} stroke="#4d0f19" strokeWidth="6" />
+                <rect x={x} y="244" width="96" height="174" rx="44" fill={`url(#arm-${layer})`} />
+                <path d={`M${x + 16} 266 Q${x + 48} 240 ${x + 80} 266`} fill="none" stroke="#fff" strokeOpacity=".28" strokeWidth="5" strokeLinecap="round" />
+                <rect x={x + 10} y="256" width="76" height="150" rx="36" {...piping} />
+              </g>
+            );
+          })}
         </>
       )}
     </svg>
@@ -102,24 +143,46 @@ function Body() {
   return (
     <svg className="body" viewBox="0 0 400 460" aria-hidden="true">
       <defs>
-        <radialGradient id="fur-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#e3c48f"/><stop offset=".6" stopColor="#c49c64"/><stop offset="1" stopColor="#a47d48"/></radialGradient>
-        <radialGradient id="belly-g" cx=".5" cy=".4" r=".7"><stop offset="0" stopColor="#f3e4bd"/><stop offset="1" stopColor="#dcc291"/></radialGradient>
-        <radialGradient id="pad-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#9a7a83"/><stop offset="1" stopColor="#64484f"/></radialGradient>
-        <pattern id="fur-p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l2 -5 M6 9 l2 -5 M3.5 4 l1 -3 M8 4 l1.5 -3" stroke="#8f6a38" strokeOpacity=".45" strokeWidth="1.3" strokeLinecap="round" fill="none"/></pattern>
+        <radialGradient id="fur-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#e3c48f" /><stop offset=".6" stopColor="#c49c64" /><stop offset="1" stopColor="#a47d48" /></radialGradient>
+        <radialGradient id="belly-g" cx=".5" cy=".4" r=".7"><stop offset="0" stopColor="#f3e4bd" /><stop offset="1" stopColor="#dcc291" /></radialGradient>
+        <radialGradient id="pad-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#9a7a83" /><stop offset="1" stopColor="#64484f" /></radialGradient>
+        <pattern id="fur-p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l2 -5 M6 9 l2 -5 M3.5 4 l1 -3 M8 4 l1.5 -3" stroke="#8f6a38" strokeOpacity=".45" strokeWidth="1.3" strokeLinecap="round" fill="none" /></pattern>
+        <filter id="fuzz" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" result="fuzzy" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="puff" />
+          <feDiffuseLighting in="puff" surfaceScale="7" diffuseConstant="1.05" lightingColor="#ffffff" result="light">
+            <feDistantLight azimuth="235" elevation="55" />
+          </feDiffuseLighting>
+          <feComposite in="fuzzy" in2="light" operator="arithmetic" k1="1.1" k2="0" k3="0" k4="0" result="lit" />
+          <feComposite in="lit" in2="fuzzy" operator="in" />
+        </filter>
+        <filter id="soft"><feGaussianBlur stdDeviation="6" /></filter>
       </defs>
-      <ellipse cx="200" cy="372" rx="130" ry="15" fill="#2a0a10" opacity=".35" />
-      <g transform="translate(200 400) scale(1.1) translate(-200 -400) translate(0 -30)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
-        <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-g)"/>
-        <path d="M118 300 Q110 236 200 232 Q290 236 282 300 Q298 380 262 404 Q200 424 138 404 Q102 380 118 300Z" fill="url(#fur-p)" stroke="none"/>
-        <ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#belly-g)" stroke="none"/><ellipse cx="200" cy="338" rx="54" ry="64" fill="url(#fur-p)" stroke="none" opacity=".6"/>
-        <g><ellipse cx="150" cy="418" rx="50" ry="42" fill="url(#fur-g)"/><ellipse cx="150" cy="418" rx="50" ry="42" fill="url(#fur-p)" stroke="none"/>
-          <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="150" cy="430" rx="22" ry="17"/><ellipse cx="121" cy="406" rx="8" ry="9"/><ellipse cx="138" cy="394" rx="8" ry="9"/><ellipse cx="162" cy="394" rx="8" ry="9"/><ellipse cx="179" cy="406" rx="8" ry="9"/></g></g>
-        <g><ellipse cx="250" cy="418" rx="50" ry="42" fill="url(#fur-g)"/><ellipse cx="250" cy="418" rx="50" ry="42" fill="url(#fur-p)" stroke="none"/>
-          <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="250" cy="430" rx="22" ry="17"/><ellipse cx="221" cy="406" rx="8" ry="9"/><ellipse cx="238" cy="394" rx="8" ry="9"/><ellipse cx="262" cy="394" rx="8" ry="9"/><ellipse cx="279" cy="406" rx="8" ry="9"/></g></g>
-        <path d="M130 274 Q92 280 58 268" fill="none" stroke="#85612f" strokeWidth="50"/><path d="M130 274 Q92 280 58 268" fill="none" stroke="url(#fur-g)" strokeWidth="44"/><path d="M130 274 Q92 280 58 268" fill="none" stroke="url(#fur-p)" strokeWidth="44"/>
-        <path d="M270 274 Q308 280 342 268" fill="none" stroke="#85612f" strokeWidth="50"/><path d="M270 274 Q308 280 342 268" fill="none" stroke="url(#fur-g)" strokeWidth="44"/><path d="M270 274 Q308 280 342 268" fill="none" stroke="url(#fur-p)" strokeWidth="44"/>
-        <ellipse cx="48" cy="262" rx="29" ry="25" fill="url(#fur-g)"/><ellipse cx="352" cy="262" rx="29" ry="25" fill="url(#fur-g)"/>
+      <ellipse cx="200" cy="396" rx="125" ry="14" fill="#2a0a10" opacity=".35" />
+      <g filter="url(#fuzz)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
+        <path d="M126 292 Q122 250 200 246 Q278 250 274 292 L286 376 Q200 408 114 376Z" fill="url(#fur-g)" />
+        <path d="M126 292 Q122 250 200 246 Q278 250 274 292 L286 376 Q200 408 114 376Z" fill="url(#fur-p)" stroke="none" />
+        <ellipse cx="200" cy="334" rx="52" ry="58" fill="url(#belly-g)" stroke="none" />
+        <ellipse cx="200" cy="334" rx="52" ry="58" fill="url(#fur-p)" stroke="none" opacity=".5" />
+        <ellipse cx="152" cy="414" rx="51" ry="40" fill="url(#fur-g)" />
+        <ellipse cx="152" cy="414" rx="51" ry="40" fill="url(#fur-p)" stroke="none" />
+        <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="152" cy="418" rx="21" ry="16" /><ellipse cx="124" cy="398" rx="8" ry="9" /><ellipse cx="142" cy="386" rx="8" ry="9" /><ellipse cx="162" cy="386" rx="8" ry="9" /><ellipse cx="180" cy="398" rx="8" ry="9" /></g>
+        <ellipse cx="248" cy="414" rx="51" ry="40" fill="url(#fur-g)" />
+        <ellipse cx="248" cy="414" rx="51" ry="40" fill="url(#fur-p)" stroke="none" />
+        <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="248" cy="418" rx="21" ry="16" /><ellipse cx="220" cy="398" rx="8" ry="9" /><ellipse cx="238" cy="386" rx="8" ry="9" /><ellipse cx="258" cy="386" rx="8" ry="9" /><ellipse cx="276" cy="398" rx="8" ry="9" /></g>
+        <path d="M140 284 Q100 292 68 266" fill="none" stroke="#85612f" strokeWidth="44" />
+        <path d="M140 284 Q100 292 68 266" fill="none" stroke="url(#fur-g)" strokeWidth="38" />
+        <path d="M140 284 Q100 292 68 266" fill="none" stroke="url(#fur-p)" strokeWidth="38" />
+        <ellipse cx="54" cy="256" rx="31" ry="26" fill="url(#fur-g)" />
+        <ellipse cx="54" cy="256" rx="31" ry="26" fill="url(#fur-p)" stroke="none" />
+        <path d="M260 284 Q300 292 332 266" fill="none" stroke="#85612f" strokeWidth="44" />
+        <path d="M260 284 Q300 292 332 266" fill="none" stroke="url(#fur-g)" strokeWidth="38" />
+        <path d="M260 284 Q300 292 332 266" fill="none" stroke="url(#fur-p)" strokeWidth="38" />
+        <ellipse cx="346" cy="256" rx="31" ry="26" fill="url(#fur-g)" />
+        <ellipse cx="346" cy="256" rx="31" ry="26" fill="url(#fur-p)" stroke="none" />
       </g>
+      <ellipse cx="200" cy="262" rx="66" ry="15" fill="#000" opacity=".32" filter="url(#soft)" />
     </svg>
   );
 }
@@ -127,16 +190,24 @@ function Body() {
 function RotaryPhone({ lifted }: { lifted: boolean }) {
   return (
     <svg className={`phone ${lifted ? 'lifted' : ''}`} viewBox="0 0 120 90" aria-hidden="true">
+      <defs>
+        <linearGradient id="phone-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ff9a4d" /><stop offset=".5" stopColor="#f0630f" /><stop offset="1" stopColor="#b8420a" /></linearGradient>
+        <radialGradient id="dial-g" cx=".4" cy=".35" r=".8"><stop offset="0" stopColor="#5a4a3c" /><stop offset="1" stopColor="#15100b" /></radialGradient>
+      </defs>
+      <ellipse cx="62" cy="86" rx="48" ry="4" fill="#000" opacity=".3" />
       <path d="M14 62 q-14 6 -10 22 q4 8 14 4" className="cord" />
-      <rect x="14" y="42" width="92" height="42" rx="15" className="phone-body" />
-      <circle cx="60" cy="63" r="16" className="phone-dial" />
+      <rect x="14" y="42" width="92" height="42" rx="15" fill="url(#phone-g)" className="phone-edge" />
+      <rect x="22" y="46" width="76" height="6" rx="3" fill="#fff" opacity=".3" />
+      <circle cx="60" cy="64" r="18" fill="#f6ecd2" stroke="#a83d06" strokeWidth="1.5" />
+      <circle cx="60" cy="64" r="12" fill="url(#dial-g)" />
       {[0, 1, 2, 3, 4, 5].map((i) => (
-        <circle key={i} cx={60 + 10 * Math.cos((i * Math.PI) / 3)} cy={63 + 10 * Math.sin((i * Math.PI) / 3)} r="2.3" className="phone-hole" />
+        <circle key={i} cx={60 + 15 * Math.cos((i * Math.PI) / 3)} cy={64 + 15 * Math.sin((i * Math.PI) / 3)} r="2.3" fill="#2a1b10" />
       ))}
       <g className="handset">
-        <rect x="8" y="22" width="104" height="15" rx="7.5" className="phone-body" />
-        <rect x="4" y="26" width="25" height="17" rx="7" className="phone-body" />
-        <rect x="91" y="26" width="25" height="17" rx="7" className="phone-body" />
+        <rect x="8" y="22" width="104" height="15" rx="7.5" fill="url(#phone-g)" className="phone-edge" />
+        <rect x="14" y="24" width="92" height="4" rx="2" fill="#fff" opacity=".35" />
+        <rect x="4" y="26" width="25" height="17" rx="7" fill="url(#phone-g)" className="phone-edge" />
+        <rect x="91" y="26" width="25" height="17" rx="7" fill="url(#phone-g)" className="phone-edge" />
       </g>
     </svg>
   );
