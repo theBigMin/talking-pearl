@@ -392,17 +392,6 @@ export default function App() {
     }, RING_MS);
   }
 
-  const status =
-    callState === 'idle'
-      ? notice || 'Tap the green button to call Pearl.'
-      : callState === 'ringing'
-        ? 'Calling Pearl…'
-        : reaction !== 'default'
-          ? ''
-          : hearing
-            ? 'Pearl is listening…'
-            : 'Say something.';
-
   return (
     <main className="stage">
       <section className={`room ${callState}`} aria-label="Talking Pearl">
@@ -411,7 +400,6 @@ export default function App() {
         <div className="hud-top">
           <HudButton label="About the game" color="#444" className="small push" onClick={() => setShowInfo(true)}><Info size={20} /></HudButton>
         </div>
-        <p className="sr-only" aria-live="polite">{status}</p>
         {notice === MIC_ERROR && <p className="toast" role="alert">{notice}</p>}
 
         <div className="seat-area">
