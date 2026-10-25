@@ -10,6 +10,7 @@ import yesSound from '@/assets/sounds/pearl-yes.mp3';
 import pickUpSound from '@/assets/sounds/phone-pick-up.mp3';
 import hangUpSound from '@/assets/sounds/phone-hang-up.mp3';
 import greetingSound from '@/assets/sounds/hi-my-name-is-tom-pearl.mp3';
+import dogBodyImage from '@/assets/images_(2).jpeg';
 import drinkSound from '@/assets/sounds/freesound_community-drinking-coffe-107121.mp3';
 import eatSound from '@/assets/sounds/freesound_community-cartoon-slurp-37066.mp3';
 import { useVoiceActivity } from '@/useVoiceActivity';
@@ -138,52 +139,11 @@ function Chair({ layer }: { layer: 'back' | 'front' }) {
   );
 }
 
-/** An original fuzzy plush body that Pearl's head sits on. */
 function Body() {
   return (
-    <svg className="body" viewBox="0 0 400 460" aria-hidden="true">
-      <defs>
-        <radialGradient id="fur-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#e3c48f" /><stop offset=".6" stopColor="#c49c64" /><stop offset="1" stopColor="#a47d48" /></radialGradient>
-        <radialGradient id="belly-g" cx=".5" cy=".4" r=".7"><stop offset="0" stopColor="#f3e4bd" /><stop offset="1" stopColor="#dcc291" /></radialGradient>
-        <radialGradient id="pad-g" cx=".4" cy=".3" r=".8"><stop offset="0" stopColor="#9a7a83" /><stop offset="1" stopColor="#64484f" /></radialGradient>
-        <pattern id="fur-p" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M1 8 l2 -5 M6 9 l2 -5 M3.5 4 l1 -3 M8 4 l1.5 -3" stroke="#8f6a38" strokeOpacity=".45" strokeWidth="1.3" strokeLinecap="round" fill="none" /></pattern>
-        <filter id="fuzz" x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4" result="noise" />
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" result="fuzzy" />
-          <feGaussianBlur in="SourceAlpha" stdDeviation="9" result="puff" />
-          <feDiffuseLighting in="puff" surfaceScale="7" diffuseConstant="1.05" lightingColor="#ffffff" result="light">
-            <feDistantLight azimuth="235" elevation="55" />
-          </feDiffuseLighting>
-          <feComposite in="fuzzy" in2="light" operator="arithmetic" k1="1.1" k2="0" k3="0" k4="0" result="lit" />
-          <feComposite in="lit" in2="fuzzy" operator="in" />
-        </filter>
-        <filter id="soft"><feGaussianBlur stdDeviation="6" /></filter>
-      </defs>
-      <ellipse cx="200" cy="396" rx="125" ry="14" fill="#2a0a10" opacity=".35" />
-      <g filter="url(#fuzz)" stroke="#85612f" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round">
-        <path d="M126 292 Q122 250 200 246 Q278 250 274 292 L286 376 Q200 408 114 376Z" fill="url(#fur-g)" />
-        <path d="M126 292 Q122 250 200 246 Q278 250 274 292 L286 376 Q200 408 114 376Z" fill="url(#fur-p)" stroke="none" />
-        <ellipse cx="200" cy="334" rx="52" ry="58" fill="url(#belly-g)" stroke="none" />
-        <ellipse cx="200" cy="334" rx="52" ry="58" fill="url(#fur-p)" stroke="none" opacity=".5" />
-        <ellipse cx="152" cy="414" rx="51" ry="40" fill="url(#fur-g)" />
-        <ellipse cx="152" cy="414" rx="51" ry="40" fill="url(#fur-p)" stroke="none" />
-        <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="152" cy="418" rx="21" ry="16" /><ellipse cx="124" cy="398" rx="8" ry="9" /><ellipse cx="142" cy="386" rx="8" ry="9" /><ellipse cx="162" cy="386" rx="8" ry="9" /><ellipse cx="180" cy="398" rx="8" ry="9" /></g>
-        <ellipse cx="248" cy="414" rx="51" ry="40" fill="url(#fur-g)" />
-        <ellipse cx="248" cy="414" rx="51" ry="40" fill="url(#fur-p)" stroke="none" />
-        <g fill="url(#pad-g)" stroke="#4f373c" strokeWidth="2"><ellipse cx="248" cy="418" rx="21" ry="16" /><ellipse cx="220" cy="398" rx="8" ry="9" /><ellipse cx="238" cy="386" rx="8" ry="9" /><ellipse cx="258" cy="386" rx="8" ry="9" /><ellipse cx="276" cy="398" rx="8" ry="9" /></g>
-        <path d="M140 284 Q100 292 68 266" fill="none" stroke="#85612f" strokeWidth="44" />
-        <path d="M140 284 Q100 292 68 266" fill="none" stroke="url(#fur-g)" strokeWidth="38" />
-        <path d="M140 284 Q100 292 68 266" fill="none" stroke="url(#fur-p)" strokeWidth="38" />
-        <ellipse cx="54" cy="256" rx="31" ry="26" fill="url(#fur-g)" />
-        <ellipse cx="54" cy="256" rx="31" ry="26" fill="url(#fur-p)" stroke="none" />
-        <path d="M260 284 Q300 292 332 266" fill="none" stroke="#85612f" strokeWidth="44" />
-        <path d="M260 284 Q300 292 332 266" fill="none" stroke="url(#fur-g)" strokeWidth="38" />
-        <path d="M260 284 Q300 292 332 266" fill="none" stroke="url(#fur-p)" strokeWidth="38" />
-        <ellipse cx="346" cy="256" rx="31" ry="26" fill="url(#fur-g)" />
-        <ellipse cx="346" cy="256" rx="31" ry="26" fill="url(#fur-p)" stroke="none" />
-      </g>
-      <ellipse cx="200" cy="262" rx="66" ry="15" fill="#000" opacity=".32" filter="url(#soft)" />
-    </svg>
+    <div className="body" aria-hidden="true">
+      <img src={dogBodyImage} alt="" />
+    </div>
   );
 }
 
